@@ -2,6 +2,10 @@
 node_modules/
 npm-debug.log*
 yarn-error.log
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
 
 # Vite / build
 dist/
@@ -14,6 +18,13 @@ dist/
 .terraform.lock.hcl
 tfplan
 
+# Terraform state/backups
+*.tfstate.backup
+*.tfstate.d/*
+
+# Environment
+.env
+
 # OS
 .DS_Store
 Thumbs.db
@@ -21,5 +32,10 @@ Thumbs.db
 # Logs
 *.log
 
-# Editor
+# Editor / IDE
 .vscode/
+.idea/
+
+# Other
+coverage/
+node_modules/
