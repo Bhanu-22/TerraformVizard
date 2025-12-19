@@ -9,6 +9,7 @@ import ValueFlowView from './ValueFlowView'
 import { analyzeOutputUsage } from './OutputUsageAnalyzer'
 import OutputUsagePanel from './OutputUsagePanel'
 import { analyzeDrift, DriftResult } from './DriftAnalyzer'
+import schemaCache, { getResourceSchema } from './schemaCache'
 import DriftSummaryPanel from './DriftSummaryPanel'
 
 function parseDot(dot: string) {
@@ -143,19 +144,19 @@ export default function FlowView({ dot, plan }: { dot: string; plan: any }) {
       
       // Determine impact classification if in impact mode
       let impactClass = 'none'
-      let borderStyle = hasDraft ? '2px dashed #2563eb' : 'none'
+      let borderStyle = hasDraft ? '2px dashed var(--draft)' : 'none'
       let opacity = 1
       
       if (impact) {
         if (n.id === impact.source) {
           impactClass = 'source'
-          borderStyle = '3px solid #ef4444' // strong red border for source
+          borderStyle = '3px solid var(--delete)'
         } else if (impact.direct.some((d) => d.address === n.id)) {
           impactClass = 'direct'
-          borderStyle = '2px solid #2563eb' // bold blue border for direct impact
+          borderStyle = '2px solid var(--draft)'
         } else if (impact.transitive.some((d) => d.address === n.id)) {
           impactClass = 'transitive'
-          borderStyle = '2px dashed #2563eb' // dashed blue border for transitive
+          borderStyle = '2px dashed var(--draft)'
         } else {
           impactClass = 'none'
           opacity = 0.4 // dim unrelated nodes
@@ -163,23 +164,23 @@ export default function FlowView({ dot, plan }: { dot: string; plan: any }) {
       } else {
         // Apply drift/orphan styling when not in impact mode
         if (driftSet.has(n.id)) {
-          // drifted: yellow outline
-          borderStyle = '3px solid #f59e0b'
+          // drifted: yellow/amber outline
+          borderStyle = '3px solid var(--update)'
         }
         if (orphanSet.has(n.id)) {
           // orphaned: dashed red outline
-          borderStyle = '2px dashed #ef4444'
+          borderStyle = '2px dashed var(--delete)'
           opacity = 0.9
         }
       }
       
-      return {
+        return {
         id: n.id,
         data: n.data,
         position: { x: gd.x - NODE_WIDTH / 2, y: gd.y - NODE_HEIGHT / 2 },
         style: { 
           background: actionToColor(n.data?.action || null), 
-          color: '#fff', 
+          color: 'var(--text)', 
           padding: 8, 
           borderRadius: 6, 
           border: borderStyle,
@@ -195,11 +196,11 @@ export default function FlowView({ dot, plan }: { dot: string; plan: any }) {
       if (impact) {
         const isSourceEdge = e.source === impact.source || impact.direct.some((d) => d.address === e.source)
         const isTargetImpacted = impact.all.some((d) => d.address === e.target)
-        
+
         if (isSourceEdge && isTargetImpacted) {
-          edgeStyle = { stroke: '#2563eb', strokeWidth: 3 } // highlight impact edges
+          edgeStyle = { stroke: 'var(--accent)', strokeWidth: 3 } // highlight impact edges
         } else {
-          edgeStyle = { stroke: '#ddd', strokeWidth: 1 } // fade unrelated edges
+          edgeStyle = { stroke: 'var(--muted)', strokeWidth: 1 } // fade unrelated edges (muted)
         }
       }
       
@@ -240,7 +241,7 @@ export default function FlowView({ dot, plan }: { dot: string; plan: any }) {
 
   return (
     <div style={{ display: 'flex', gap: 12 }}>
-      <div style={{ flex: 1, height: '60vh', border: '1px solid #eee' }}>
+      <div className="graph-container panel" style={{ flex: 1, height: '60vh' }}>
         <ReactFlow nodes={rfNodes} edges={rfEdges} onNodeClick={(_, node) => { 
           if (node && node.id) {
             if (impactMode) {
@@ -253,23 +254,32 @@ export default function FlowView({ dot, plan }: { dot: string; plan: any }) {
           <Background />
           <Controls />
         </ReactFlow>
+        <div className="graph-legend">
+          <div className="item"><div className="swatch" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}></div><div className="ty-label">Neutral</div></div>
+          <div className="item"><div className="swatch" style={{ background: 'transparent', border: '2px dashed var(--draft)' }}></div><div className="ty-label">Draft</div></div>
+          <div className="item"><div className="swatch" style={{ background: 'var(--accent)' }}></div><div className="ty-label">Impact</div></div>
+          <div className="item"><div className="swatch" style={{ background: 'var(--delete)' }}></div><div className="ty-label">Risk</div></div>
+        </div>
       </div>
 
-      <div style={{ width: 360, border: '1px solid #eee', padding: 8, height: '60vh', overflow: 'auto' }}>
+      <div className="panel panel-scroll" style={{ width: 360, height: '60vh' }}>
         {/* Impact Preview Mode: Show impact summary */}
         {impactMode ? (
           <div>
             <h4 style={{ margin: '0 0 8px 0', fontSize: 14 }}>Impact Preview</h4>
-            <ImpactSummaryPanel impactResult={impactResult} draftMode={draftMode} />
+            <ImpactSummaryPanel impactResult={impactResult} draftMode={draftMode} plan={plan} resolvedEdges={resolvedEdges} />
           </div>
         ) : (
           <div>
             {/* Normal Mode: Show resource details */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h4 style={{ margin: 0 }}>Resource Details{hasDraftForResource(selected || '') ? <span className="node-draft-badge">Draft</span> : null}</h4>
+            <div className="resource-header" style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h4 className="resource-title" style={{ margin: 0 }}>Resource Details</h4>
+                {hasDraftForResource(selected || '') ? <div className="badge draft">Draft</div> : null}
+              </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setViewMode('human')} style={{ padding: '4px 8px', background: viewMode === 'human' ? '#2563eb' : '#ddd', color: viewMode === 'human' ? '#fff' : '#000', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Human</button>
-                <button onClick={() => setViewMode('json')} style={{ padding: '4px 8px', background: viewMode === 'json' ? '#2563eb' : '#ddd', color: viewMode === 'json' ? '#fff' : '#000', border: 'none', borderRadius: 4, cursor: 'pointer' }}>JSON</button>
+                <button onClick={() => setViewMode('human')} style={{ padding: '4px 8px', background: viewMode === 'human' ? 'var(--accent)' : 'transparent', color: viewMode === 'human' ? 'var(--text)' : 'var(--muted)', border: '1px solid var(--muted-border)', borderRadius: 4, cursor: 'pointer' }}>Simplified</button>
+                <button onClick={() => setViewMode('json')} style={{ padding: '4px 8px', background: viewMode === 'json' ? 'var(--accent)' : 'transparent', color: viewMode === 'json' ? 'var(--text)' : 'var(--muted)', border: '1px solid var(--muted-border)', borderRadius: 4, cursor: 'pointer' }}>JSON</button>
               </div>
             </div>
             {selected ? (
@@ -295,7 +305,7 @@ interface RawJsonViewProps {
 }
 
 function RawJsonView({ selectedChange }: RawJsonViewProps) {
-  return <pre style={{ background: '#f7f7f7', padding: 8, fontSize: 12 }}>{JSON.stringify(selectedChange ? selectedChange.change : {}, null, 2)}</pre>
+  return <pre className="code-block" style={{ fontSize: 12 }}>{JSON.stringify(selectedChange ? selectedChange.change : {}, null, 2)}</pre>
 }
 
 interface HumanResourceViewProps {
@@ -365,19 +375,48 @@ function HumanResourceView({ selectedChange, selected, draftMode, getDraftsForRe
   // Get risks
   const risks = annotateRisks(summary.resourceType, config)
 
+  // Schema-aware state
+  const [resourceSchema, setResourceSchema] = React.useState<any | null>(null)
+  const [schemaLoading, setSchemaLoading] = React.useState(false)
+  const [schemaError, setSchemaError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let mounted = true
+    async function loadSchema() {
+      setSchemaError(null)
+      setSchemaLoading(true)
+      try {
+        const s = await getResourceSchema(summary.resourceType)
+        if (!mounted) return
+        setResourceSchema(s)
+      } catch (e: any) {
+        if (!mounted) return
+        setSchemaError(e && e.message ? e.message : String(e))
+        setResourceSchema(null)
+      } finally {
+        if (mounted) setSchemaLoading(false)
+      }
+    }
+    // Lazy load only when a resource is selected
+    if (selectedChange) loadSchema()
+    return () => { mounted = false }
+  }, [selectedChange])
+
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #ddd' }}>
-        <div style={{ fontSize: 12, color: '#666' }}>{summary.resourceType}</div>
-        <div style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 4 }}>{summary.resourceName || summary.address}</div>
-        <div style={{ fontSize: 11, color: '#999' }}>Module: {summary.moduleCtx || '(root)'}</div>
-        <div style={{ marginTop: 4, padding: '4px 6px', background: action.includes('create') ? '#e8f5e9' : action.includes('delete') ? '#ffebee' : '#e3f2fd', borderRadius: 3, fontSize: 11 }}>
-          <strong>Action:</strong> {action}
+      <div className="section" style={{ marginBottom: 12 }}>
+        <div className="ty-label">{summary.resourceType}</div>
+        <div className="resource-title" style={{ marginBottom: 4 }}>{summary.resourceName || summary.address}</div>
+        <div className="resource-meta">Module: {summary.moduleCtx || '(root)'}</div>
+        <div style={{ marginTop: 8 }}>
+          <div className={"badge " + (action.includes('create') ? 'info' : action.includes('delete') ? 'risk' : 'info')} style={{ marginTop: 8 }}>
+            <strong style={{ marginRight: 8 }}>Action:</strong> {action}
+          </div>
         </div>
         {plan && (selected?.startsWith('module.') || (plan.configuration && plan.configuration.root_module && Object.keys(plan.configuration.root_module.outputs || {}).length > 0)) && (
           <div style={{ marginTop: 8 }}>
-            <button onClick={handleShowOutputUsage} style={{ padding: '6px 8px', borderRadius: 4, border: 'none', cursor: 'pointer', background: '#f3f4f6' }}>Show Output Usage</button>
+            <button onClick={handleShowOutputUsage} style={{ padding: '6px 8px', borderRadius: 4, border: '1px solid var(--muted-border)', cursor: 'pointer', background: 'transparent', color: 'var(--muted)' }}>Show Output Usage</button>
             {showOutputUsage && <div style={{ marginTop: 8 }}><OutputUsagePanel result={outputUsageResult} /></div>}
           </div>
         )}
@@ -401,20 +440,21 @@ function HumanResourceView({ selectedChange, selected, draftMode, getDraftsForRe
           </summary>
           <div style={{ paddingLeft: 12, fontSize: 11 }}>
             {Object.entries(fields).map(([key, value]) => {
-              const draft = getDraftsForResource(selected).find((d) => d.attributePath === key)
-              const displayVal = draft ? draft.newValue : value
-              return (
-                <div key={key} style={{ marginBottom: 6, padding: 4, background: draft ? '#fef3c7' : 'transparent', borderRadius: 2 }}>
+                const draft = getDraftsForResource(selected).find((d) => d.attributePath === key)
+                const displayVal = draft ? draft.newValue : value
+                return (
+                  <div key={key} className={draft ? 'draft-highlight' : undefined} style={{ marginBottom: 6, padding: 4, borderRadius: 2 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                     <div style={{ fontWeight: 'bold' }}>{key}</div>
                     <div>
-                      <button onClick={() => toggleTrace(key)} style={{ padding: '2px 6px', fontSize: 11, marginRight: 6 }}>{traceOpen[key] ? 'Hide Flow' : 'Trace'}</button>
+                      <button onClick={() => toggleTrace(key)} style={{ padding: '2px 6px', fontSize: 11, marginRight: 6, borderRadius: 3, border: '1px solid var(--muted-border)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>{traceOpen[key] ? 'Hide Flow' : 'Trace'}</button>
                     </div>
                   </div>
-                  {draftMode ? (
+
+                    {draftMode ? (
                     <input
                       value={String(displayVal)}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         addDraft({
                           resourceAddress: selected,
                           attributePath: key,
@@ -422,18 +462,21 @@ function HumanResourceView({ selectedChange, selected, draftMode, getDraftsForRe
                           newValue: e.target.value,
                           source: 'resource',
                         })
-                      }
+                      }}
                       style={{
                         width: '100%',
-                        padding: 4,
-                        border: '1px solid #ccc',
-                        borderRadius: 2,
+                        padding: 6,
+                        border: '1px solid var(--border)',
+                        borderRadius: 3,
                         fontSize: 11,
                         boxSizing: 'border-box',
+                        background: 'var(--panel-bg)',
+                        color: 'var(--text)',
+                        fontFamily: 'var(--font-mono)',
                       }}
                     />
                   ) : (
-                    <div style={{ color: '#444' }}>{renderBlockValue(value)}</div>
+                    <div className="ty-label">{renderBlockValue(value)}</div>
                   )}
 
                   {traceOpen[key] && (
@@ -450,7 +493,7 @@ function HumanResourceView({ selectedChange, selected, draftMode, getDraftsForRe
 
       {/* Risks */}
       {risks.length > 0 && (
-        <div style={{ marginBottom: 8, padding: 8, background: '#fef3c7', borderRadius: 3, border: '1px solid #fcd34d' }}>
+        <div className="stat-box warn" style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 'bold', fontSize: 11, marginBottom: 4 }}>⚠️ Insights</div>
           <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11 }}>
             {risks.map((risk, idx) => (
@@ -462,20 +505,20 @@ function HumanResourceView({ selectedChange, selected, draftMode, getDraftsForRe
 
       {/* Advanced section */}
       <details style={{ marginTop: 8 }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: 11, color: '#666' }}>Advanced</summary>
+        <summary style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: 11, color: 'var(--muted)' }}>Advanced</summary>
         <div style={{ paddingLeft: 12, marginTop: 6, fontSize: 10 }}>
           <div style={{ marginBottom: 6 }}>
-            <strong>Address:</strong> <code style={{ background: '#f0f0f0', padding: 2, borderRadius: 2 }}>{selected}</code>
+            <strong>Address:</strong> <code className="inline-code">{selected}</code>
           </div>
           {before && Object.keys(before).length > 0 && (
             <details>
-              <summary style={{ cursor: 'pointer', fontSize: 10, color: '#666' }}>Before (Previous State)</summary>
-              <pre style={{ background: '#f7f7f7', padding: 4, fontSize: 9, overflow: 'auto', maxHeight: 150 }}>{JSON.stringify(before, null, 2)}</pre>
+              <summary style={{ cursor: 'pointer', fontSize: 10, color: 'var(--muted)' }}>Before (Previous State)</summary>
+              <pre className="code-block" style={{ padding: 4, fontSize: 9, overflow: 'auto', maxHeight: 150 }}>{JSON.stringify(before, null, 2)}</pre>
             </details>
           )}
           <details>
-            <summary style={{ cursor: 'pointer', fontSize: 10, color: '#666' }}>Raw Configuration</summary>
-            <pre style={{ background: '#f7f7f7', padding: 4, fontSize: 9, overflow: 'auto', maxHeight: 150 }}>{JSON.stringify(config, null, 2)}</pre>
+            <summary style={{ cursor: 'pointer', fontSize: 10, color: 'var(--muted)' }}>Raw Configuration</summary>
+            <pre className="code-block" style={{ padding: 4, fontSize: 9, overflow: 'auto', maxHeight: 150 }}>{JSON.stringify(config, null, 2)}</pre>
           </details>
         </div>
       </details>

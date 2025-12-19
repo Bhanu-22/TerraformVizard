@@ -51,29 +51,29 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Terraform Plan & Visualization (READ-ONLY)</h2>
+    <div style={{ fontFamily: 'var(--font-sans)', padding: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 'var(--space-md)', borderBottom: '1px solid var(--muted-border)' }}>
+        <h2 style={{ margin: 0, fontSize: 20 }}>Terraform Vizard</h2>
         <div style={{ display: 'flex', gap: 24 }}>
           <div>
-            <label style={{ marginRight: 8 }}><strong>Draft Mode:</strong></label>
-            <button onClick={toggleDraftMode} style={{ padding: '6px 10px' }}>{draftMode ? 'ON' : 'OFF'}</button>
+            <label style={{ marginRight: 8, color: 'var(--muted)' }}><strong>Draft Mode:</strong></label>
+            <button onClick={toggleDraftMode} className="badge draft" style={{ padding: '4px 8px', marginLeft: 4, fontWeight: 'bold' }}>{draftMode ? 'ON' : 'OFF'}</button>
           </div>
           <div>
-            <label style={{ marginRight: 8 }}><strong>Impact Preview:</strong></label>
-            <button onClick={toggleImpactMode} style={{ padding: '6px 10px' }}>{impactMode ? 'ON' : 'OFF'}</button>
+            <label style={{ marginRight: 8, color: 'var(--muted)' }}><strong>Impact Preview:</strong></label>
+            <button onClick={toggleImpactMode} className="badge info" style={{ padding: '4px 8px', marginLeft: 4, fontWeight: 'bold' }}>{impactMode ? 'ON' : 'OFF'}</button>
           </div>
         </div>
       </div>
       <div style={{ marginTop: 12, marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
-        <input value={workspaceInput} onChange={(e) => setWorkspaceInput(e.target.value)} placeholder="Enter absolute path to Terraform folder" style={{ width: 520, padding: 8 }} />
-        <button onClick={onLoadWorkspace} disabled={workspaceLoading} style={{ padding: '8px 12px' }}>{workspaceLoading ? 'Loading...' : 'Load Workspace'}</button>
-        <button onClick={onPlan} disabled={loading || !workspacePath} style={{ padding: '8px 12px' }}>
+        <input value={workspaceInput} onChange={(e) => setWorkspaceInput(e.target.value)} placeholder="Enter absolute path to Terraform folder" style={{ width: 520, padding: '8px 12px', background: 'var(--panel-bg)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)', fontSize: 13 }} />
+        <button onClick={onLoadWorkspace} disabled={workspaceLoading} style={{ padding: '8px 12px', background: 'var(--accent)', color: 'var(--text)', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 'bold' }}>{workspaceLoading ? 'Loading...' : 'Load Workspace'}</button>
+        <button onClick={onPlan} disabled={loading || !workspacePath} style={{ padding: '8px 12px', background: 'var(--accent)', color: 'var(--text)', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 'bold', opacity: loading || !workspacePath ? 0.6 : 1 }}>
           {loading ? 'Planning...' : 'Plan'}
         </button>
       </div>
 
-      <div style={{ marginBottom: 8 }}><strong>Active workspace:</strong> {workspacePath || '(none)'}</div>
+      <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--muted-border)' }}><strong style={{ color: 'var(--muted)' }}>Active workspace:</strong> <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text)' }}>{workspacePath || '(none)'}</span></div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 12 }}>
         <div>

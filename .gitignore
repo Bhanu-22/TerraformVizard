@@ -2,13 +2,9 @@
 node_modules/
 npm-debug.log*
 yarn-error.log
-# Node
-node_modules/
-npm-debug.log*
-yarn-error.log
 
-# Vite / build
-dist/
+# Vite / build (frontend)
+frontend/dist/
 .vite/
 
 # Terraform
@@ -24,6 +20,7 @@ tfplan
 
 # Environment
 .env
+.env.*
 
 # OS
 .DS_Store
@@ -38,4 +35,11 @@ Thumbs.db
 
 # Other
 coverage/
-node_modules/
+
+# Local node_modules for nested projects
+frontend/node_modules/
+backend/node_modules/
+
+# Lockfiles (optionally ignore if you want to commit them)
+# package-lock.json
+# yarn.lock

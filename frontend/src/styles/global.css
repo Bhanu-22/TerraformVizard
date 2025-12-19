@@ -1,0 +1,117 @@
+@import './tokens.css';
+
+/* Global layout, panels, and controls for Terraform Design Studio */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--muted-border);
+  background: linear-gradient(180deg, rgba(11,18,32,0.6), rgba(11,18,32,0.4));
+}
+
+/* Main content: left Graph + right panel */
+.main-area {
+  display: grid;
+  grid-template-columns: 1fr 360px; /* resizable via inline splitter (JS) */
+  gap: var(--space-md);
+  padding: var(--space-md);
+  height: calc(100vh - 56px);
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
+  padding: var(--space-md);
+  box-sizing: border-box;
+}
+
+/* Graph container styling */
+.graph-container {
+  height: 100%;
+  border-radius: var(--panel-radius);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Node visual helpers: classes applied by logic elsewhere */
+.node-neutral { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.02); }
+.node-selected { outline: 2px solid var(--accent); }
+.node-drafted { border-style: dashed; border-color: var(--draft); }
+.node-dim { opacity: 0.35; }
+.node-path-highlight { outline: 2px dashed rgba(31,111,235,0.65); }
+
+/* Legend */
+.graph-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(11,18,32,0.6);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.graph-legend .item { display:flex; align-items:center; gap:8px; margin-bottom:4px }
+.graph-legend .swatch { width:12px; height:12px; border-radius:3px; }
+
+/* Resource Details specific */
+.resource-header { display:flex; align-items:center; justify-content:space-between; gap:12px }
+.resource-title { font-family: var(--font-mono); font-weight: var(--fw-medium); font-size: 15px; }
+.resource-meta { color: var(--muted); font-size: 12px }
+.section { margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--muted-border) }
+.section h3 { margin:0; font-size:13px; font-weight:600; color:var(--text) }
+.section .sub { font-size:12px; color:var(--muted); margin-top:6px }
+
+/* Explain-Why callout */
+.explain-why { background: rgba(255,255,255,0.02); border-left:4px solid rgba(31,111,235,0.9); padding:10px; border-radius:4px; color:var(--text); font-size:13px }
+
+/* Severity badges */
+.badge { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-size:12px; }
+.badge.info { background: rgba(255,255,255,0.02); color:var(--muted); border:1px solid var(--muted-border) }
+.badge.caution { background: rgba(202,138,4,0.08); color:var(--update); border:1px solid rgba(202,138,4,0.12) }
+.badge.risk { background: rgba(220,38,38,0.08); color:var(--delete); border:1px solid rgba(220,38,38,0.12) }
+.badge.draft { background: rgba(37,99,235,0.08); color:var(--draft); border:1px solid rgba(37,99,235,0.12) }
+
+/* Details/summary style for consistent disclosure */
+details { background: transparent; }
+summary { cursor: pointer; outline: none; }
+summary::-webkit-details-marker { display:none }
+
+/* Inline small helpers */
+.hint { font-size:12px; color:var(--muted) }
+.code-block { background: rgba(255,255,255,0.02); padding:8px; border-radius:6px; font-family: var(--font-mono); font-size:12px; color:var(--text); }
+
+/* Empty states */
+.empty-state { text-align:center; color:var(--muted); padding: var(--space-lg) }
+
+/* Make scrollable panels comfortable */
+.panel-scroll { max-height: calc(100vh - 160px); overflow: auto; padding-right:8px }
+
+/* Draft highlight for editable fields */
+.draft-highlight { background: rgba(37,99,235,0.06); border-radius: 4px; padding: 4px; }
+
+/* Statistic boxes used in summary panels */
+.stat-box { padding: 8px; border-radius: 6px; text-align: center; }
+.stat-box.primary { background: rgba(31,111,235,0.06); color: var(--text); border: 1px solid rgba(31,111,235,0.08); }
+.stat-box.info { background: rgba(22,163,74,0.06); color: var(--create); border: 1px solid rgba(22,163,74,0.12); }
+.stat-box.muted { background: rgba(255,255,255,0.02); color: var(--muted); border: 1px solid var(--muted-border); }
+.stat-box.risk { background: rgba(220,38,38,0.06); color: var(--delete); border: 1px solid rgba(220,38,38,0.12); }
+.stat-box.warn { background: rgba(202,138,4,0.06); color: var(--update); border: 1px solid rgba(202,138,4,0.12); }

@@ -107,6 +107,24 @@ app.get('/graph', async (req, res) => {
   }
 });
 
+// GET /providers/schema - runs `terraform providers schema -json` and returns parsed JSON
+app.get('/providers/schema', async (req, res) => {
+  try {
+    console.log('[providers/schema] activeWorkspace=', activeWorkspace)
+    const { stdout } = await runCommand('terraform', ['providers', 'schema', '-json'], activeWorkspace);
+    let schemaJson = {};
+    try {
+      schemaJson = JSON.parse(stdout);
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to parse terraform providers schema output', details: e.message, raw: stdout });
+    }
+    return res.json({ schema: schemaJson });
+  } catch (err) {
+    console.error('[providers/schema] error', err && err.stack ? err.stack : err)
+    return res.status(500).json({ error: err.message, stderr: err.stderr || null, stdout: err.stdout || null });
+  }
+});
+
 // POST /workspace - set active Terraform workspace (in-memory only)
 app.post('/workspace', (req, res) => {
   try {
